@@ -1,6 +1,10 @@
 export type PlateIncrement = 0.5 | 1 | 1.25 | 2.5 | number;
 export type ExerciseCategory = 'strength' | 'chipper' | 'emom' | 'general';
 export type TrainingPhase = '5-rep' | '3-rep' | '2-rep' | 'deload';
+export type ReferenceRmType = '5RM' | '3RM' | '2RM';
+export type E1RmFormula = 'epley' | 'brzycki' | 'average';
+export type WeightedLoadMode = 'external-only' | 'bodyweight-plus-external';
+export type SetStatus = 'planned' | 'completed' | 'modified' | 'skipped';
 
 export interface Exercise {
   id: string;
@@ -17,6 +21,39 @@ export interface StrengthExerciseProfile {
   threeRm: number;
   twoRm: number;
   oneRm?: number;
+}
+
+export interface DeloadSettings {
+  percentage: number;
+  targetSets: number;
+  guidance: string;
+}
+
+export interface StrengthSettings {
+  monthlyIncrease: number;
+  defaultTargetSets: number;
+  deload: DeloadSettings;
+  e1rmFormula: E1RmFormula;
+  weightedLoadMode: WeightedLoadMode;
+  currentBodyweight?: number;
+}
+
+export interface StrengthPrescription {
+  weekNumber: number;
+  monthNumber: 1 | 2 | 3;
+  phase: TrainingPhase;
+  referenceRmType: ReferenceRmType;
+  referenceRmValue: number;
+  initialWorkingMax: number;
+  updatedWorkingMax: number;
+  monthlyMultiplier: number;
+  weeklyPercentage: number;
+  targetRepetitions: number;
+  targetSets: number;
+  exactPrescribedLoad: number;
+  roundedPrescribedLoad: number;
+  isDeload: boolean;
+  explanation: string;
 }
 
 export interface TrainingWeek {
@@ -51,12 +88,18 @@ export interface Programme {
 export interface StrengthSet {
   id: string;
   exerciseId: string;
+  weekNumber?: number;
+  setNumber: number;
   prescribedLoad?: number;
   actualLoad: number;
   targetReps?: number;
   actualReps: number;
   rpe?: number;
   rir?: number;
+  bodyweight?: number;
+  status: SetStatus;
+  notes?: string;
+  e1rm?: number;
   completed: boolean;
 }
 
@@ -128,6 +171,7 @@ export interface AppState {
   chipperWorkouts: ChipperWorkout[];
   emomWorkouts: EmomWorkout[];
   personalRecords: PersonalRecord[];
+  strengthSettings: StrengthSettings;
   activePage: NavigationPage;
 }
 
