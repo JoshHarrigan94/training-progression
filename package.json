@@ -1,10 +1,13 @@
 {
   "name": "training-cycle-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "deploy": "npm run build:github && gh-pages -d dist",
@@ -21,6 +24,7 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "gh-pages": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "latest"
   }
 }
