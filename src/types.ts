@@ -1,16 +1,116 @@
 export type PlateIncrement = 0.5 | 1 | 1.25 | 2.5 | number;
-export type ExerciseCategory = 'strength' | 'chipper' | 'emom' | 'general';
+
+export type ExerciseCategory =
+  | 'strength'
+  | 'accessory'
+  | 'bodyweight'
+  | 'conditioning'
+  | 'mobility'
+  | 'skill';
+
+export type MovementPattern =
+  | 'squat'
+  | 'hinge'
+  | 'horizontal-push'
+  | 'vertical-push'
+  | 'horizontal-pull'
+  | 'vertical-pull'
+  | 'carry'
+  | 'jump'
+  | 'rotation'
+  | 'anti-rotation'
+  | 'core'
+  | 'conditioning'
+  | 'isolation';
+
+export type Equipment =
+  | 'barbell'
+  | 'dumbbell'
+  | 'kettlebell'
+  | 'cable'
+  | 'machine'
+  | 'bodyweight'
+  | 'band'
+  | 'sandbag'
+  | 'sled'
+  | 'cardio'
+  | 'other';
+
+export type MuscleGroup =
+  | 'quads'
+  | 'hamstrings'
+  | 'glutes'
+  | 'calves'
+  | 'chest'
+  | 'lats'
+  | 'upper-back'
+  | 'delts'
+  | 'triceps'
+  | 'biceps'
+  | 'forearms'
+  | 'core';
+
+export type ExerciseType =
+  | 'compound'
+  | 'isolation'
+  | 'power'
+  | 'conditioning'
+  | 'mobility'
+  | 'skill';
+
 export type TrainingPhase = '5-rep' | '3-rep' | '2-rep' | 'deload';
+
 export type ReferenceRmType = '5RM' | '3RM' | '2RM';
+
 export type E1RmFormula = 'epley' | 'brzycki' | 'average';
-export type WeightedLoadMode = 'external-only' | 'bodyweight-plus-external';
-export type SetStatus = 'planned' | 'completed' | 'modified' | 'skipped';
+
+export type WeightedLoadMode =
+  | 'external-only'
+  | 'bodyweight-plus-external';
+
+export type SetStatus =
+  | 'planned'
+  | 'completed'
+  | 'modified'
+  | 'skipped';
 
 export interface Exercise {
   id: string;
+
   name: string;
+
+  description: string;
+
   category: ExerciseCategory;
+
+  movementPattern: MovementPattern;
+
+  primaryMuscles: MuscleGroup[];
+
+  secondaryMuscles: MuscleGroup[];
+
+  equipment: Equipment;
+
+  exerciseType: ExerciseType;
+
+  unilateral: boolean;
+
+  loadable: boolean;
+
+  bodyweight: boolean;
+
+  strengthEligible: boolean;
+
+  chipperEligible: boolean;
+
+  emomEligible: boolean;
+
+  notes: string;
+
+  archived: boolean;
+
   isCustom: boolean;
+
   createdAt: string;
 }
 
@@ -180,5 +280,5 @@ export type NavigationPage =
   | 'programme'
   | 'session'
   | 'progress'
-  | 'library'
+  | 'exercise-library'
   | 'settings';
