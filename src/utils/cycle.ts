@@ -101,7 +101,7 @@ export function createTwelveWeekCycle(
   };
 }
 
-export function getCurrentWeekNumber(
+export function getCurrentWeek(
   startDate: string,
   referenceDate = new Date(),
 ): number {
@@ -123,6 +123,16 @@ export function getCurrentWeekNumber(
   return Math.min(
     12,
     Math.floor(elapsedDays / 7) + 1,
+  );
+}
+
+export function getCurrentWeekNumber(
+  startDate: string,
+  referenceDate = new Date(),
+): number {
+  return getCurrentWeek(
+    startDate,
+    referenceDate,
   );
 }
 
@@ -197,7 +207,9 @@ function parseLocalDate(
   );
 }
 
-function stripTime(date: Date): Date {
+function stripTime(
+  date: Date,
+): Date {
   return new Date(
     date.getFullYear(),
     date.getMonth(),
@@ -214,6 +226,9 @@ function clampWeekNumber(
 
   return Math.min(
     12,
-    Math.max(1, Math.trunc(weekNumber)),
+    Math.max(
+      1,
+      Math.trunc(weekNumber),
+    ),
   );
 }
