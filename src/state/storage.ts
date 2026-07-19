@@ -1,11 +1,13 @@
 import { defaultExercises } from '../data/defaultExercises';
+
 import type {
   AppState,
   Exercise,
+  NavigationPage,
   StrengthSettings,
 } from '../types';
 
-export const APP_SCHEMA_VERSION = 3;
+export const APP_SCHEMA_VERSION = 4;
 
 const STORAGE_KEY = 'training-cycle-app-state-v1';
 
@@ -15,53 +17,187 @@ export const defaultStrengthSettings: StrengthSettings = {
   deload: {
     percentage: 0.6,
     targetSets: 3,
-    guidance: 'Keep effort low and avoid grinding.',
+    guidance:
+      'Keep effort low and avoid grinding.',
   },
   e1rmFormula: 'average',
   weightedLoadMode: 'external-only',
   currentBodyweight: undefined,
 };
 
-function migrateExercise(exercise: Partial<Exercise>): Exercise {
+function migrateExercise(
+  exercise: Partial<Exercise>,
+): Exercise {
   return {
-    id: exercise.id ?? crypto.randomUUID(),
+    id:
+      exercise.id ??
+      crypto.randomUUID(),
 
-    name: exercise.name ?? 'Unnamed Exercise',
+    name:
+      exercise.name ??
+      'Unnamed Exercise',
 
-    description: exercise.description ?? '',
+    description:
+      exercise.description ?? '',
 
-    category: exercise.category ?? 'strength',
+    category:
+      exercise.category ?? 'strength',
 
-    movementPattern: exercise.movementPattern ?? 'conditioning',
+    movementPattern:
+      exercise.movementPattern ??
+      'conditioning',
 
-    primaryMuscles: exercise.primaryMuscles ?? [],
+    primaryMuscles:
+      exercise.primaryMuscles ?? [],
 
-    secondaryMuscles: exercise.secondaryMuscles ?? [],
+    secondaryMuscles:
+      exercise.secondaryMuscles ?? [],
 
-    equipment: exercise.equipment ?? 'other',
+    equipment:
+      exercise.equipment ?? 'other',
 
-    exerciseType: exercise.exerciseType ?? 'compound',
+    exerciseType:
+      exercise.exerciseType ?? 'compound',
 
-    unilateral: exercise.unilateral ?? false,
+    unilateral:
+      exercise.unilateral ?? false,
 
-    loadable: exercise.loadable ?? true,
+    loadable:
+      exercise.loadable ?? true,
 
-    bodyweight: exercise.bodyweight ?? false,
+    bodyweight:
+      exercise.bodyweight ?? false,
 
-    strengthEligible: exercise.strengthEligible ?? true,
+    strengthEligible:
+      exercise.strengthEligible ?? true,
 
-    chipperEligible: exercise.chipperEligible ?? true,
+    chipperEligible:
+      exercise.chipperEligible ?? true,
 
-    emomEligible: exercise.emomEligible ?? true,
+    emomEligible:
+      exercise.emomEligible ?? true,
 
-    notes: exercise.notes ?? '',
+    notes:
+      exercise.notes ?? '',
 
-    archived: exercise.archived ?? false,
+    archived:
+      exercise.archived ?? false,
 
-    isCustom: exercise.isCustom ?? false,
+    isCustom:
+      exercise.isCustom ?? false,
 
-    createdAt: exercise.createdAt ?? new Date().toISOString(),
+    createdAt:
+      exercise.createdAt ??
+      new Date().toISOString(),
   };
+}
+
+function mergeExerciseLibrary(
+  savedExercises: unknown,
+): Exercise[] {
+  const migratedDefaults =
+    defaultExercises.map(migrateExercise);
+
+  if (!Array.isArray(savedExercises)) {
+    return migratedDefaults;
+  }
+
+  const migratedSavedExercises =
+    savedExercises
+      .filter(
+        (
+          exercise,
+        ): exercise is Partial<Exercise> =>
+          Boolean(
+            exercise &&
+              typeof exercise === 'object',
+          ),
+      )
+      .map(migrateExercise);
+
+  const savedById = new Map(
+    migratedSavedExercises.map(
+      (exercise) => [
+        exercise.id,
+        exercise,
+      ],
+    ),
+  );
+
+  const mergedBuiltInExercises =
+    migratedDefaults.map(
+      (defaultExercise) => {
+        const savedExercise =
+          savedById.get(
+            defaultExercise.id,
+          );
+
+        if (!savedExercise) {
+          return defaultExercise;
+        }
+
+        savedById.delete(
+          defaultExercise.id,
+        );
+
+        return {
+          ...defaultExercise,
+
+          // Preserve user-controlled state.
+          archived:
+            savedExercise.archived,
+
+          notes:
+            savedExercise.notes,
+
+          // Keep the authoritative built-in
+          // identity and metadata.
+          id:
+            defaultExercise.id,
+
+          isCustom:
+            false,
+
+          createdAt:
+            defaultExercise.createdAt,
+        };
+      },
+    );
+
+  const remainingExercises =
+    Array.from(savedById.values());
+
+  const preservedCustomExercises =
+    remainingExercises.filter(
+      (exercise) =>
+        exercise.isCustom,
+    );
+
+  return [
+    ...mergedBuiltInExercises,
+    ...preservedCustomExercises,
+  ];
+}
+
+function migrateActivePage(
+  activePage: unknown,
+): NavigationPage {
+  if (activePage === 'library') {
+    return 'exercise-library';
+  }
+
+  switch (activePage) {
+    case 'dashboard':
+    case 'programme':
+    case 'session':
+    case 'progress':
+    case 'exercise-library':
+    case 'settings':
+      return activePage;
+
+    default:
+      return 'dashboard';
+  }
 }
 
 export function createInitialState(): AppState {
@@ -70,7 +206,10 @@ export function createInitialState(): AppState {
 
     programme: null,
 
-    exercises: defaultExercises.map(migrateExercise),
+    exercises:
+      defaultExercises.map(
+        migrateExercise,
+      ),
 
     plannedSessions: [],
 
@@ -82,128 +221,212 @@ export function createInitialState(): AppState {
 
     personalRecords: [],
 
-    strengthSettings: defaultStrengthSettings,
+    strengthSettings:
+      defaultStrengthSettings,
 
     activePage: 'dashboard',
   };
 }
 
-export function migrateState(input: unknown): AppState {
-  if (!input || typeof input !== 'object') {
-    throw new Error('Backup must contain an application object.');
+export function migrateState(
+  input: unknown,
+): AppState {
+  if (
+    !input ||
+    typeof input !== 'object'
+  ) {
+    throw new Error(
+      'Backup must contain an application object.',
+    );
   }
 
-  const candidate = input as Partial<AppState>;
+  const candidate =
+    input as Partial<AppState>;
 
-  const initial = createInitialState();
-
-  const migratedExercises =
-    Array.isArray(candidate.exercises) && candidate.exercises.length > 0
-      ? candidate.exercises.map(migrateExercise)
-      : defaultExercises.map(migrateExercise);
+  const initial =
+    createInitialState();
 
   return {
     ...initial,
     ...candidate,
 
-    version: APP_SCHEMA_VERSION,
+    version:
+      APP_SCHEMA_VERSION,
 
-    programme: candidate.programme ?? null,
+    programme:
+      candidate.programme ?? null,
 
-    exercises: migratedExercises,
+    exercises:
+      mergeExerciseLibrary(
+        candidate.exercises,
+      ),
 
-    plannedSessions: Array.isArray(candidate.plannedSessions)
-      ? candidate.plannedSessions
-      : [],
+    plannedSessions:
+      Array.isArray(
+        candidate.plannedSessions,
+      )
+        ? candidate.plannedSessions
+        : [],
 
-    completedSessions: Array.isArray(candidate.completedSessions)
-      ? candidate.completedSessions.map((session) => ({
-          ...session,
-          strengthSets: Array.isArray(session.strengthSets)
-            ? session.strengthSets.map((set, index) => ({
-                ...set,
-                setNumber: set.setNumber ?? index + 1,
-                status:
-                  set.status ??
-                  (set.completed ? 'completed' : 'planned'),
-              }))
-            : [],
-        }))
-      : [],
+    completedSessions:
+      Array.isArray(
+        candidate.completedSessions,
+      )
+        ? candidate.completedSessions.map(
+            (session) => ({
+              ...session,
 
-    chipperWorkouts: Array.isArray(candidate.chipperWorkouts)
-      ? candidate.chipperWorkouts
-      : [],
+              strengthSets:
+                Array.isArray(
+                  session.strengthSets,
+                )
+                  ? session.strengthSets.map(
+                      (
+                        set,
+                        index,
+                      ) => ({
+                        ...set,
 
-    emomWorkouts: Array.isArray(candidate.emomWorkouts)
-      ? candidate.emomWorkouts
-      : [],
+                        setNumber:
+                          set.setNumber ??
+                          index + 1,
 
-    personalRecords: Array.isArray(candidate.personalRecords)
-      ? candidate.personalRecords
-      : [],
+                        status:
+                          set.status ??
+                          (set.completed
+                            ? 'completed'
+                            : 'planned'),
+                      }),
+                    )
+                  : [],
+            }),
+          )
+        : [],
+
+    chipperWorkouts:
+      Array.isArray(
+        candidate.chipperWorkouts,
+      )
+        ? candidate.chipperWorkouts
+        : [],
+
+    emomWorkouts:
+      Array.isArray(
+        candidate.emomWorkouts,
+      )
+        ? candidate.emomWorkouts
+        : [],
+
+    personalRecords:
+      Array.isArray(
+        candidate.personalRecords,
+      )
+        ? candidate.personalRecords
+        : [],
 
     strengthSettings: {
       ...defaultStrengthSettings,
-      ...(candidate.strengthSettings ?? {}),
+      ...(candidate.strengthSettings ??
+        {}),
+
       deload: {
         ...defaultStrengthSettings.deload,
-        ...(candidate.strengthSettings?.deload ?? {}),
+        ...(candidate
+          .strengthSettings
+          ?.deload ?? {}),
       },
     },
 
-    activePage: candidate.activePage ?? 'dashboard',
+    activePage:
+      migrateActivePage(
+        candidate.activePage,
+      ),
   };
 }
 
-export function loadState(): AppState | null {
+export function loadState():
+  | AppState
+  | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw =
+      localStorage.getItem(
+        STORAGE_KEY,
+      );
 
     if (!raw) {
       return null;
     }
 
-    return migrateState(JSON.parse(raw));
+    return migrateState(
+      JSON.parse(raw),
+    );
   } catch (error) {
-    console.error('Unable to restore local training data.', error);
+    console.error(
+      'Unable to restore local training data.',
+      error,
+    );
+
     return null;
   }
 }
 
-export function saveState(state: AppState): void {
+export function saveState(
+  state: AppState,
+): void {
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({
       ...state,
-      version: APP_SCHEMA_VERSION,
+      version:
+        APP_SCHEMA_VERSION,
     }),
   );
 }
 
 export function clearState(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(
+    STORAGE_KEY,
+  );
 }
 
-export function exportState(state: AppState): void {
+export function exportState(
+  state: AppState,
+): void {
   const blob = new Blob(
-    [JSON.stringify(state, null, 2)],
+    [
+      JSON.stringify(
+        {
+          ...state,
+          version:
+            APP_SCHEMA_VERSION,
+        },
+        null,
+        2,
+      ),
+    ],
     {
       type: 'application/json',
     },
   );
 
-  const url = URL.createObjectURL(blob);
+  const url =
+    URL.createObjectURL(blob);
 
-  const link = document.createElement('a');
+  const link =
+    document.createElement('a');
 
   link.href = url;
 
-  link.download = `training-cycle-backup-${new Date()
-    .toISOString()
-    .slice(0, 10)}.json`;
+  link.download =
+    `training-cycle-backup-${new Date()
+      .toISOString()
+      .slice(0, 10)}.json`;
+
+  document.body.appendChild(link);
 
   link.click();
+
+  link.remove();
 
   URL.revokeObjectURL(url);
 }
